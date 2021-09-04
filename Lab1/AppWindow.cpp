@@ -63,13 +63,12 @@ void AppWindow_PrintBitmap(HDC hdc)
 		ptSize.x = bm.bmWidth;
 		ptSize.y = bm.bmHeight;
 
-		DPtoLP(hdc, &ptSize, 1);
+		/*DPtoLP(hdc, &ptSize, 1);
 		ptOrg.x = 0;
 		ptOrg.y = 0;
-		DPtoLP(hMemDC, &ptOrg, 1);
+		DPtoLP(hMemDC, &ptOrg, 1);*/
 
-		//TransparentBlt(hdc, spritePosition.X, spritePosition.Y, ptSize.x, ptSize.y, hMemDC, 0, 0, ptOrg.x, ptOrg.y, RGB(255, 255, 255));
-	    BitBlt(hdc, spritePosition.X, spritePosition.Y, ptSize.x, ptSize.y, hMemDC, ptOrg.x, ptOrg.y, SRCCOPY);
+		TransparentBlt(hdc, spritePosition.X, spritePosition.Y, ptSize.x, ptSize.y, hMemDC, 0, 0, ptSize.x, ptSize.y, RGB(255, 255, 255));
 		SelectObject(hMemDC, hOldbm);
 	}
 	DeleteDC(hMemDC);
@@ -306,7 +305,7 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 	case WM_PAINT:
 		PAINTSTRUCT ps;
-		AppWindow_draw(hdcBack);
+		AppWindow_draw(hdcBack);	
 		HDC hdc = BeginPaint(hwnd, &ps);
 		BitBlt(hdc, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hdcBack, 0, 0, SRCCOPY);
 		EndPaint(hwnd, &ps);
