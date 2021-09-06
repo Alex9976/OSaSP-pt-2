@@ -172,15 +172,10 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 {
 	int x, y;
 	RECT rect = { 0 };
-	GetWindowRect(hwnd, &rect);
+	GetClientRect(hwnd, &rect);
 
 	switch (uMsg)
 	{
-	case WM_CREATE:
-		GetClientRect(hwnd, &rcClient);
-		AdjustWindowRect(&rcClient, ((CREATESTRUCT*)lParam)->style, FALSE);
-		SetWindowPos(hwnd, 0, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, SWP_NOZORDER);
-		break;
 	case AW_LOADBITMAP:
 		sprite = LoadBitmap((HINSTANCE)lParam, MAKEINTRESOURCE(IDB_BITMAP1));
 		break;
@@ -301,7 +296,6 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 		AppWindow_InitializeBackBuffer(hwnd, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
-
 	case WM_PAINT:
 		PAINTSTRUCT ps;
 		AppWindow_draw(hdcBack);	
