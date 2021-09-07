@@ -63,7 +63,7 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPervInstance, PSTR lpCmdLine,
 	SendMessage(hwndAppWindow, AW_LOADBITMAP, 0, (LPARAM)hInstance);
 
 	int nTimerID;
-	nTimerID = SetTimer(hwndAppWindow, TIMER_ID, 40, NULL);
+	nTimerID = SetTimer(hwndAppWindow, TIMER_ID, 20, NULL);
 
 	while (GetMessage(&msg, 0, 0, 0))
 	{

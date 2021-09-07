@@ -18,6 +18,7 @@ const int VK_D = 0x44;
 int SPRITE_ACCEL = 5;
 int SPRITE_TIMER_ACCEL = 5;
 bool isUP = false, isLeft = false, isDown = false, isRight = false;
+const int SPRITE_MAXSPEED = 50;
 
 void AppWindow_InitializeBackBuffer(HWND hwnd, int width, int height)
 {
@@ -184,27 +185,22 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 		PostQuitMessage(0);
 		break;
 	case WM_KEYDOWN:
-		if (wParam == VK_UP || wParam == VK_W || isUP)
+		if (wParam == VK_UP || wParam == VK_W)
 		{
-			DoUp();
 			isUP = true;
 		}
-		if (wParam == VK_RIGHT || wParam == VK_D || isRight)
+		if (wParam == VK_RIGHT || wParam == VK_D)
 		{
-			DoRight();
 			isRight = true;
 		}
-		if (wParam == VK_DOWN || wParam == VK_S || isDown)
+		if (wParam == VK_DOWN || wParam == VK_S)
 		{
-			DoDown();
 			isDown = true;
 		}
-		if (wParam == VK_LEFT || wParam == VK_A || isLeft)
+		if (wParam == VK_LEFT || wParam == VK_A)
 		{
-			DoLeft();
 			isLeft = true;
 		}
-		UpdateSpritePosition(rect, GetSpriteSize(sprite));
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
 	case WM_KEYUP:
@@ -226,6 +222,11 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 		}
 		break;
 	case WM_TIMER:
+		if (isUP && spriteSpeed.top < SPRITE_MAXSPEED)
+		{
+			DoUp();
+		}
+		else
 		if (spriteSpeed.top - SPRITE_TIMER_ACCEL > 0)
 		{
 			spriteSpeed.top -= SPRITE_TIMER_ACCEL;
@@ -235,6 +236,11 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 			spriteSpeed.top = 0;
 		}
 
+		if (isDown && spriteSpeed.bottom < SPRITE_MAXSPEED)
+		{
+			DoDown();
+		}
+		else
 		if (spriteSpeed.bottom - SPRITE_TIMER_ACCEL > 0)
 		{
 			spriteSpeed.bottom -= SPRITE_TIMER_ACCEL;
@@ -244,6 +250,11 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 			spriteSpeed.bottom = 0;
 		}
 
+		if (isLeft && spriteSpeed.left < SPRITE_MAXSPEED)
+		{
+			DoLeft();
+		}
+		else
 		if (spriteSpeed.left - SPRITE_TIMER_ACCEL > 0)
 		{
 			spriteSpeed.left -= SPRITE_TIMER_ACCEL;
@@ -253,6 +264,11 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 			spriteSpeed.left = 0;
 		}
 
+		if (isRight && spriteSpeed.right < SPRITE_MAXSPEED)
+		{
+			DoRight();
+		}
+		else
 		if (spriteSpeed.right - SPRITE_TIMER_ACCEL > 0)
 		{
 			spriteSpeed.right -= SPRITE_TIMER_ACCEL;
