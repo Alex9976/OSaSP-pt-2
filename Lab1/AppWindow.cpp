@@ -17,8 +17,9 @@ const int VK_S = 0x53;
 const int VK_D = 0x44;
 int SPRITE_ACCEL = 5;
 int SPRITE_TIMER_ACCEL = 5;
-bool isUP = false, isLeft = false, isDown = false, isRight = false;
+bool isUP = false, isLeft = false, isDown = false, isRight = false, isLMB = false;
 const int SPRITE_MAXSPEED = 50;
+POINT cursorStartOffset = { 0 };
 
 void AppWindow_InitializeBackBuffer(HWND hwnd, int width, int height)
 {
@@ -107,7 +108,7 @@ void UpdateSpritePosition(RECT windowRectSize, SIZE spriteSize)
 	COORD spriteSteps = { 0 };
 
 	spriteSteps.Y = -(spriteSpeed.top - spriteSpeed.bottom);
-    spriteSteps.X = -(spriteSpeed.left - spriteSpeed.right);
+	spriteSteps.X = -(spriteSpeed.left - spriteSpeed.right);
 
 
 	newSpritePosition.X = spritePosition.X + spriteSteps.X;
@@ -221,86 +222,119 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 			isLeft = false;
 		}
 		break;
+	case WM_LBUTTONDOWN:
+		WORD xPos, yPos;
+		xPos = LOWORD(lParam);
+		yPos = HIWORD(lParam);
+
+		SIZE spriteSize = GetSpriteSize(sprite);
+
+		if ((xPos > spritePosition.X && xPos <= spritePosition.X + spriteSize.cx) && (yPos > spritePosition.Y && yPos <= spritePosition.Y + spriteSize.cy))
+		{
+			isLMB = true;
+			cursorStartOffset.x = xPos - spritePosition.X;
+			cursorStartOffset.y = yPos - spritePosition.Y;
+		}
+		break;
+	case WM_LBUTTONUP:
+		isLMB = false;
+		break;
 	case WM_TIMER:
-		if (isUP && spriteSpeed.top < SPRITE_MAXSPEED)
-		{
-			DoUp();
-		}
-		else
-		if (spriteSpeed.top - SPRITE_TIMER_ACCEL > 0)
-		{
-			spriteSpeed.top -= SPRITE_TIMER_ACCEL;
-		}
-		else
-		{
-			spriteSpeed.top = 0;
-		}
+		POINT pt;
 
-		if (isDown && spriteSpeed.bottom < SPRITE_MAXSPEED)
-		{
-			DoDown();
-		}
-		else
-		if (spriteSpeed.bottom - SPRITE_TIMER_ACCEL > 0)
-		{
-			spriteSpeed.bottom -= SPRITE_TIMER_ACCEL;
-		}
-		else
-		{
-			spriteSpeed.bottom = 0;
-		}
+		GetCursorPos(&pt);
+		ScreenToClient(hwnd, &pt);
 
-		if (isLeft && spriteSpeed.left < SPRITE_MAXSPEED)
+		if (!isLMB)
 		{
-			DoLeft();
+			if (isUP && spriteSpeed.top < SPRITE_MAXSPEED)
+			{
+				DoUp();
+			}
+			else if (spriteSpeed.top - SPRITE_TIMER_ACCEL > 0)
+			{
+				spriteSpeed.top -= SPRITE_TIMER_ACCEL;
+			}
+			else
+			{
+				spriteSpeed.top = 0;
+			}
+
+			if (isDown && spriteSpeed.bottom < SPRITE_MAXSPEED)
+			{
+				DoDown();
+			}
+			else if (spriteSpeed.bottom - SPRITE_TIMER_ACCEL > 0)
+			{
+				spriteSpeed.bottom -= SPRITE_TIMER_ACCEL;
+			}
+			else
+			{
+				spriteSpeed.bottom = 0;
+			}
+
+			if (isLeft && spriteSpeed.left < SPRITE_MAXSPEED)
+			{
+				DoLeft();
+			}
+			else if (spriteSpeed.left - SPRITE_TIMER_ACCEL > 0)
+			{
+				spriteSpeed.left -= SPRITE_TIMER_ACCEL;
+			}
+			else
+			{
+				spriteSpeed.left = 0;
+			}
+
+			if (isRight && spriteSpeed.right < SPRITE_MAXSPEED)
+			{
+				DoRight();
+			}
+			else if (spriteSpeed.right - SPRITE_TIMER_ACCEL > 0)
+			{
+				spriteSpeed.right -= SPRITE_TIMER_ACCEL;
+			}
+			else
+			{
+				spriteSpeed.right = 0;
+			}
 		}
 		else
-		if (spriteSpeed.left - SPRITE_TIMER_ACCEL > 0)
 		{
-			spriteSpeed.left -= SPRITE_TIMER_ACCEL;
-		}
-		else
-		{
+			spritePosition.X = pt.x - cursorStartOffset.x;
+			spritePosition.Y = pt.y - cursorStartOffset.y;
 			spriteSpeed.left = 0;
-		}
-
-		if (isRight && spriteSpeed.right < SPRITE_MAXSPEED)
-		{
-			DoRight();
-		}
-		else
-		if (spriteSpeed.right - SPRITE_TIMER_ACCEL > 0)
-		{
-			spriteSpeed.right -= SPRITE_TIMER_ACCEL;
-		}
-		else
-		{
 			spriteSpeed.right = 0;
+			spriteSpeed.top = 0;
+			spriteSpeed.bottom = 0;
 		}
 		UpdateSpritePosition(rect, GetSpriteSize(sprite));
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
 	case WM_MOUSEWHEEL:
-		if (GET_KEYSTATE_WPARAM(wParam) == MK_SHIFT)
+		if (!isLMB)
 		{
-			if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+			if (GET_KEYSTATE_WPARAM(wParam) == MK_SHIFT)
 			{
-				DoLeft();
+				if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+				{
+					DoLeft();
+				}
+				else
+				{
+					DoRight();
+				}
 			}
 			else
 			{
-				DoRight();
-			}
-		}
-		else
-		{
-			if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
-			{
-				DoUp();
-			}
-			else
-			{
-				DoDown();
+				if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+				{
+					DoUp();
+				}
+				else
+				{
+					DoDown();
+				}
 			}
 		}
 		UpdateSpritePosition(rect, GetSpriteSize(sprite));
@@ -314,7 +348,7 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 	case WM_PAINT:
 		PAINTSTRUCT ps;
-		AppWindow_draw(hdcBack);	
+		AppWindow_draw(hdcBack);
 		HDC hdc = BeginPaint(hwnd, &ps);
 		BitBlt(hdc, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hdcBack, 0, 0, SRCCOPY);
 		EndPaint(hwnd, &ps);
