@@ -99,18 +99,24 @@ void AppWindow_draw(HDC hdc)
 	RestoreDC(hdc, -1);
 }
 
-void LoadData()
+bool LoadData()
 {
 	int requiredNumOfLines = NUM_OF_COLUMNS * NUM_OF_ROWS;
 	FILE* fp;
 	int i = 0;
 
 	fopen_s(&fp, "text.txt", "r");
+	
+	if (fp == NULL)
+	{
+		return false;
+	}
 
 	while (!feof(fp) && i < requiredNumOfLines) {
 		fgets(textList[i++], 512, fp);
 	}
 	fclose(fp);
+	return true;
 }
 
 
@@ -119,7 +125,10 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 	switch (uMsg)
 	{
 	case WM_CREATE:
-		LoadData();
+		if (!LoadData())
+		{
+			MessageBox(hwnd, L"Can't load text", L"Error", MB_OK | MB_ICONERROR);
+		}
 		break;
 	case WM_DESTROY:
 		AppWindow_FinalizeBackBuffer();
