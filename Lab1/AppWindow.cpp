@@ -4,6 +4,8 @@
 #include "AppWindow.hpp"
 #pragma comment(lib, "Msimg32.lib")
 
+#include <cmath>
+
 HDC hdcBack;
 HBITMAP hbmBack;
 RECT rcClient;
@@ -125,10 +127,10 @@ void UpdateSpritePosition(RECT windowRectSize, SIZE spriteSize)
 		swap(&spriteSpeed.top, &spriteSpeed.bottom);
 		newSpritePosition.Y = 0 + spriteSteps.X;
 	}
-	else if (newSpritePosition.Y + spriteSize.cy > windowSize.cy)
+	else if (newSpritePosition.Y + spriteSize.cy >= windowSize.cy)
 	{
 		swap(&spriteSpeed.top, &spriteSpeed.bottom);
-		newSpritePosition.Y = (SHORT)(windowSize.cy - spriteSize.cy - spriteSteps.X);
+		newSpritePosition.Y = (SHORT)(windowSize.cy - spriteSize.cy - std::abs(spriteSteps.X));
 	}
 
 	spritePosition = newSpritePosition;
@@ -168,8 +170,10 @@ SIZE GetSpriteSize(HBITMAP hBitmap)
 LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	int x, y;
-	RECT rect = { 0 };
+	RECT rect = { 0 }, windowRect = { 0 };
 	GetClientRect(hwnd, &rect);
+	GetWindowRect(hwnd, &windowRect);
+	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	switch (uMsg)
 	{
@@ -303,6 +307,7 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 			spriteSpeed.top = 0;
 			spriteSpeed.bottom = 0;
 		}
+		rect.bottom = rect.bottom - (windowRect.bottom - rect.bottom);
 		UpdateSpritePosition(rect, GetSpriteSize(sprite));
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
@@ -332,6 +337,7 @@ LRESULT CALLBACK AppWindow_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 				}
 			}
 		}
+		rect.bottom = rect.bottom - (windowRect.bottom - rect.bottom);
 		UpdateSpritePosition(rect, GetSpriteSize(sprite));
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
