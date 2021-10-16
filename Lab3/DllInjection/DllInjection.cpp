@@ -1,6 +1,7 @@
 ﻿#include <Windows.h>
 #include <iostream>
 #include <string>
+#include <psapi.h>
 
 extern "C" __declspec(dllimport) void __stdcall ReplaceString(DWORD pid, const char* srcString, const char* resString);
 typedef void __stdcall TReplaceString(DWORD, const char*, const char*);
@@ -9,7 +10,7 @@ void ReplaceStringDynamic(DWORD PID, const char* srcStr, const char* resStr);
 void InjectToProcess(DWORD procID, char srcStr[], char resStr[]);
 
 struct DataToSend {
-	bool injectOnAttach;
+	DWORD PID;
 	char src[255];
 	char res[255];
 };
@@ -96,6 +97,11 @@ void InjectToProcess(DWORD procID, char srcStr[], char resStr[])
 		PROCESS_CREATE_THREAD | PROCESS_CREATE_PROCESS,
 		FALSE, procID);
 
+	DataToSend data = { 0 };
+	data.PID = procID;
+	strncpy(data.src, srcStr, 255);
+	strncpy(data.res, resStr, 255);
+
 	if (hProc)
 	{
 		LPVOID baseAddress = VirtualAllocEx(hProc, NULL, strlen("StringReplacement.dll") + 1,
@@ -103,34 +109,52 @@ void InjectToProcess(DWORD procID, char srcStr[], char resStr[])
 
 		if (baseAddress)
 		{
-			TCHAR lpTempPathBuffer[MAX_PATH];
 
-			GetTempPath(MAX_PATH, lpTempPathBuffer);
+			LPVOID dataAddress = VirtualAllocEx(hProc, NULL, sizeof(data),
+				MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-			char pathToFile[MAX_PATH];
-			wcstombs(pathToFile, lpTempPathBuffer, wcslen(lpTempPathBuffer) + 1);
-			;				FILE* fp;
-			if ((fp = fopen(strcat(pathToFile, "dataToSend.txt"), "w")) != NULL)
+			if (dataAddress)
 			{
-				fprintf(fp, "%d %s %s", true, srcStr, resStr);
-				fclose(fp);
+
+				WriteProcessMemory(hProc, dataAddress, &data,
+					sizeof(data), NULL);
+
+				WriteProcessMemory(hProc, baseAddress, "StringReplacement.dll",
+					strlen("StringReplacement.dll") + 1, NULL);
+
+				DWORD threadId;
+
+				HANDLE hThread = CreateRemoteThread(hProc, NULL, NULL, (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandle(L"Kernel32"), "LoadLibraryA"), baseAddress, NULL, &threadId);
+
+				if (hThread == NULL)
+					std::cout << "Error" << std::endl;
+				else
+					WaitForSingleObject(hThread, INFINITE);
+
+				DWORD hLibModule = 0;
+				GetExitCodeThread(hThread, &hLibModule);
+				if (hLibModule == STILL_ACTIVE)
+				{
+					return;
+				}
+
+				CloseHandle(hThread);
+
+				HMODULE hDll = LoadLibraryA("StringReplacement.dll");
+				DWORD offset = (DWORD)GetProcAddress(hDll, "Inject") - (DWORD)hDll;
+
+				hThread = CreateRemoteThread(hProc, NULL, NULL, (LPTHREAD_START_ROUTINE)(hLibModule + offset + 0x00007fff00000000), dataAddress, NULL, &threadId);
+				
+				if (hThread == NULL)
+					std::cout << "Error" << std::endl;
+				else
+					WaitForSingleObject(hThread, INFINITE);
+
+				CloseHandle(hThread);
 			}
-
-
-			WriteProcessMemory(hProc, baseAddress, "StringReplacement.dll",
-				strlen("StringReplacement.dll") + 1, NULL);
-
-			DWORD threadId;
-
-			HANDLE hThread = CreateRemoteThread(hProc, NULL, NULL,
-				(LPTHREAD_START_ROUTINE)LoadLibraryA, (LPVOID)baseAddress, NULL, &threadId);
-
-			if (hThread == NULL)
-				std::cout << "Error" << std::endl;
-			else
-				WaitForSingleObject(hThread, INFINITE);
 		}
 
 		CloseHandle(hProc);
+
 	}
 }

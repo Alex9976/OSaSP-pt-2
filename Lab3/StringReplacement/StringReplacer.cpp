@@ -56,3 +56,16 @@ extern "C" __declspec(dllexport) void __stdcall ReplaceString(DWORD pid, const c
 		}
 	}
 }
+
+extern "C" __declspec(dllexport) void __stdcall Inject(DataToSend data)
+{
+	DataToSend m_data = { 0 };
+	/*PVOID localData = baseAdress;*/
+	/*VirtualUnlock(localData, sizeof(m_data));
+	
+	HANDLE hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, FALSE, pid);
+	ReadProcessMemory(hProcess, localData, &m_data, sizeof(m_data), NULL);
+	VirtualFree(localData, 0, MEM_RELEASE);*/
+	ReplaceString(data.PID, data.src, data.res);
+}
+
