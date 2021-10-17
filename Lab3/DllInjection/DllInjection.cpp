@@ -11,8 +11,8 @@ void InjectToProcess(DWORD procID, char srcStr[], char resStr[]);
 
 struct DataToSend {
 	DWORD PID;
-	char src[255];
-	char res[255];
+	char src[40];
+	char res[40];
 };
 
 int main()
@@ -79,7 +79,7 @@ void ReplaceStringDynamic(DWORD PID, const char* srcStr, const char* resStr)
 
 	if (hDll)
 	{
-		TReplaceString* lpReplaceString = (TReplaceString*)GetProcAddress(hDll, "ReplaceString");
+		TReplaceString* lpReplaceString = (TReplaceString*)GetProcAddress(hDll, "_ReplaceString@12");
 
 		if (lpReplaceString != NULL)
 		{
@@ -99,8 +99,8 @@ void InjectToProcess(DWORD procID, char srcStr[], char resStr[])
 
 	DataToSend data = { 0 };
 	data.PID = procID;
-	strncpy(data.src, srcStr, 255);
-	strncpy(data.res, resStr, 255);
+	strncpy(data.src, srcStr, 40);
+	strncpy(data.res, resStr, 40);
 
 	if (hProc)
 	{
@@ -133,17 +133,14 @@ void InjectToProcess(DWORD procID, char srcStr[], char resStr[])
 
 				DWORD hLibModule = 0;
 				GetExitCodeThread(hThread, &hLibModule);
-				if (hLibModule == STILL_ACTIVE)
-				{
-					return;
-				}
 
 				CloseHandle(hThread);
 
 				HMODULE hDll = LoadLibraryA("StringReplacement.dll");
-				DWORD offset = (DWORD)GetProcAddress(hDll, "Inject") - (DWORD)hDll;
+				DWORD procAdress = (DWORD)GetProcAddress(hDll, "_Inject@84");
+				DWORD offset = procAdress - (DWORD)hDll;
 
-				hThread = CreateRemoteThread(hProc, NULL, NULL, (LPTHREAD_START_ROUTINE)(hLibModule + offset + 0x00007fff00000000), dataAddress, NULL, &threadId);
+				hThread = CreateRemoteThread(hProc, NULL, NULL, (LPTHREAD_START_ROUTINE)(hLibModule + offset), dataAddress, NULL, &threadId);
 				
 				if (hThread == NULL)
 					std::cout << "Error" << std::endl;

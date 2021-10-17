@@ -2,8 +2,8 @@
 
 struct DataToSend {
 	DWORD PID;
-	char src[255];
-	char res[255];
+	char src[40];
+	char res[40];
 };
 
 extern "C" void __declspec(dllexport) __stdcall ReplaceString(DWORD pid, const char* srcStr, const char* resStr);
