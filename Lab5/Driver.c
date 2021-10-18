@@ -1,5 +1,6 @@
 #include "Driver.h"
-#include <ntifs.h>
+
+wchar_t* trackedProcess = L"calc.exe";
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
@@ -18,18 +19,33 @@ NTSTATUS DriverUnload(PDRIVER_OBJECT DriverObject)
 
 void sCreateProcessNotifyRoutine(HANDLE ppid, HANDLE pid, BOOLEAN create)
 {
-	if (create)
+	PEPROCESS process = NULL;
+	PUNICODE_STRING parentProcessName = NULL, processName = NULL;
+	PsLookupProcessByProcessId(ppid, &process);
+	SeLocateProcessImageName(process, &parentProcessName);
+	PsLookupProcessByProcessId(pid, &process);
+	SeLocateProcessImageName(process, &processName);
+	if (isSubstrInStr(parentProcessName, trackedProcess))
 	{
-		PEPROCESS process = NULL;
-		PUNICODE_STRING parentProcessName = NULL, processName = NULL;
-		PsLookupProcessByProcessId(ppid, &process);
-		SeLocateProcessImageName(process, &parentProcessName);
-		PsLookupProcessByProcessId(pid, &process);
-		SeLocateProcessImageName(process, &processName);
-		DbgPrintEx(0, 0, "\n%d %wZ\n\t\t%d %wZ\n", ppid, parentProcessName, pid, processName);
+		if (create)
+		{
+			DbgPrintEx(0, 0, "\nProcess %d %wZ open\n", ppid, parentProcessName);
+		}
+		else
+		{
+			DbgPrintEx(0, 0, "\nProcess %d %wZ closed\n", ppid, parentProcessName);
+		}
 	}
-	else
+}
+
+BOOLEAN isSubstrInStr(PUNICODE_STRING str, PUNICODE_STRING substr)
+{
+	int strLength = wcslen(str->Buffer);
+	wchar_t buffer[255] = { 0 };
+	wcscpy_s(buffer, strLength + 1, str->Buffer);
+	if (wcsstr(buffer, trackedProcess))
 	{
-		DbgPrintEx(0, 0, "Process %d lost child %d", ppid, pid);
+		return TRUE;
 	}
+	return FALSE;
 }
