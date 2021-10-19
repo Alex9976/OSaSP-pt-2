@@ -1,6 +1,8 @@
 #include "Driver.h"
-
-wchar_t* trackedProcess = L"calc.exe";
+//\Device\HarddiskVolume2\Windows\notepad.exe
+wchar_t* trackedProcess = L"win32calc.exe";
+HANDLES openProcessesTable[255] = { 0 };
+int openProcessesCount;
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
@@ -25,15 +27,20 @@ void sCreateProcessNotifyRoutine(HANDLE ppid, HANDLE pid, BOOLEAN create)
 	SeLocateProcessImageName(process, &parentProcessName);
 	PsLookupProcessByProcessId(pid, &process);
 	SeLocateProcessImageName(process, &processName);
-	if (isSubstrInStr(parentProcessName, trackedProcess))
+
+	if (isSubstrInStr(processName, trackedProcess))
 	{
 		if (create)
 		{
-			DbgPrintEx(0, 0, "\nProcess %d %wZ open\n", ppid, parentProcessName);
+			
+			openProcessesTable[openProcessesCount].trackedProc = pid;
+			++openProcessesCount;
+			DbgPrintEx(0, 0, "\nProcess %d %wZ open\n", pid, processName);
 		}
 		else
 		{
-			DbgPrintEx(0, 0, "\nProcess %d %wZ closed\n", ppid, parentProcessName);
+			findAndCloseProcess(pid);
+			DbgPrintEx(0, 0, "\nProcess %d %wZ closed\n", pid, processName);
 		}
 	}
 }
@@ -48,4 +55,34 @@ BOOLEAN isSubstrInStr(PUNICODE_STRING str, PUNICODE_STRING substr)
 		return TRUE;
 	}
 	return FALSE;
+}
+
+void findAndCloseProcess(HANDLE pid)
+{
+	PEPROCESS process = NULL;
+	int pos = -1;
+	for (int i = 0; i < openProcessesCount; i++)
+	{
+		if (openProcessesTable[i].trackedProc == pid)
+		{
+			NTSTATUS status = PsLookupProcessByProcessId(openProcessesTable[i].concomitantProcess, &process);
+			if (status != STATUS_SUCCESS)
+			{
+				KeAttachProcess(process);
+				ZwTerminateProcess(NULL, 0);
+				KeDetachProcess();
+				ObDereferenceObject(process);
+			}
+			pos = i;
+		}
+	}
+	if (pos != -1)
+	{
+		for (int i = pos; i < openProcessesCount - 1; i++)
+		{
+			openProcessesTable[i].trackedProc = openProcessesTable[i + 1].trackedProc;
+			openProcessesTable[i].concomitantProcess = openProcessesTable[i + 1].concomitantProcess;
+		}
+		--openProcessesCount;
+	}
 }
