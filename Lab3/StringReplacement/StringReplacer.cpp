@@ -56,9 +56,3 @@ extern "C" __declspec(dllexport) void __stdcall ReplaceString(DWORD pid, const c
 		}
 	}
 }
-
-extern "C" __declspec(dllexport) void __stdcall Inject(DataToSend data)
-{
-	ReplaceString(GetCurrentProcessId(), data.src, data.res);
-}
-
